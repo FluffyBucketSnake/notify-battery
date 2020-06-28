@@ -1,0 +1,108 @@
+#!/bin/bash
+
+#
+# This script is meant to be the frontend of battery notifications, receiving commands from other
+# apps and displaying the requested dunst notification.
+#
+# Usage:
+# notify-battery level percentage full|normal|low|critical
+# notify-battery plug in|out
+#
+
+PROGRAM_NAME="notify-battery"
+PROGRAM_VERSION="0.1"
+PROGRAM_CALL=$(basename $0)
+PROGRAM_AUTHOR="FluffyBucketSnake"
+
+display-level() {
+    PERCENTAGE=$1
+    STATE=$2
+
+    # Parse percentage.
+    if [[ $PERCENTAGE =~ ^[0-9]*%?$ ]]; then
+        PERCENTAGE=${PERCENTAGE/"%"/""}
+        if (($PERCENTAGE > 100)); then
+            echo "$PROGRAM_NAME: Percentage value must be between 0% and 100%."
+            exit 1
+        fi
+    else
+        echo "$PROGRAM_NAME: Invalid percentage '$PERCENTAGE'."
+        exit 1
+    fi
+
+    # Parse state.
+    case $STATE in
+    full)
+        dunstify "Battery Fully Charged" "The battery is at $PERCENTAGE%." -i battery-full -u normal -r 0
+        ;;
+    good)
+        dunstify "Battery Well Charged" "The battery is at $PERCENTAGE%." -i battery-good -u normal -r 0
+        ;;
+    normal)
+        dunstify "Battery" "The battery is at $PERCENTAGE%." -i battery-medium -u normal -r 0
+        ;;
+    low)
+        dunstify "Low Battery" "The battery is at $PERCENTAGE%! Be careful." -i battery-low -u normal -r 0
+        ;;
+    critical)
+        dunstify "Battery Almost Empty" "The battery is at $PERCENTAGE%! The computer will shutdown soon." -i battery-caution -u normal -r 0
+        ;;
+    *)
+        echo "$PROGRAM_NAME: Unknown option battery state '$STATE'."
+        echo "Try '$PROGRAM_CALL --help' for more information."
+        exit 1
+        ;;
+    esac
+}
+
+display-plug() {
+    STATE=$1
+
+    case $STATE in
+    in)
+        dunstify "Power adapter connected" "The computer is now charging." -i battery-good-charging -u normal
+        echo "a"
+        ;;
+    out)
+        dunstify "Power adapter disconnected" "The computer is now discharging." -i battery-low -u critical
+        ;;
+    *)
+        echo "$PROGRAM_NAME: Unknown option plug state '$STATE'."
+        echo "Try '$PROGRAM_CALL --help' for more information."
+        exit 1
+        ;;
+    esac
+}
+
+MODE=$1
+
+case $MODE in
+--version | -v)
+    echo "$PROGRAM_NAME $PROGRAM_VERSION"
+    echo "Made by $PROGRAM_AUTHOR"
+    echo "Try '$PROGRAM_CALL --help' for more information."
+    ;;
+--help | -h)
+    echo "Usage:"
+    echo "notify-battery level percentage[%] full|good|normal|low|critical"
+    echo "notify-battery plug in|out"
+    echo "notify-battery -v|--version"
+    echo "notify-battery -h|--help"
+    ;;
+level)
+    display-level $2 $3
+    ;;
+plug)
+    display-plug $2
+    ;;
+"")
+    echo "$PROGRAM_NAME: No option specified."
+    echo "Try '$PROGRAM_CALL --help' for more information."
+    exit 1
+    ;;
+*)
+    echo "$PROGRAM_NAME: Unknown option '$MODE'."
+    echo "Try $PROGRAM_CALL --help  for more information."
+    exit 1
+    ;;
+esac

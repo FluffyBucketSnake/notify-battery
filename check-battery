@@ -1,0 +1,29 @@
+#!/bin/bash
+
+#
+# This script is used to keep track of the battery power level by continuously polling battery
+# information and triggering the notifications accordingly.
+#
+
+BATPATH=/sys/class/power_supply/BAT0
+BAT_FULL=$BATPATH/charge_full
+BAT_NOW=$BATPATH/charge_now
+
+CHARGEPATH=/sys/class/power_supply/ACAD/online
+CHARGE=$(cat $CHARGEPATH)
+
+BAT=$(cat $BAT_NOW)
+BAT_MAX=$(cat $BAT_FULL)
+BAT_LEVEL=$((100 * BAT / BAT_MAX))
+
+if [[ $CHARGE ]]; then
+    if (( BAT_LEVEL >= 70 )); then
+        notify-battery level 100 full
+    fi
+else
+    if (( BAT_LEVEL <= 15 )); then
+        notify-battery level $BAT_LEVEL critical
+    elif (( BAT_LEVEL <= 30 )); then
+        notify-battery level $BAT_LEVEL low
+    fi
+fi
